@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchFromBackend } from "@/lib/api";
 
 const severityIcons: Record<string, string> = {
   critical: "🔴",
@@ -16,11 +16,7 @@ export default function AlertFeed() {
   const { data: alerts = [] } = useQuery({
     queryKey: ["feed-alerts"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("alerts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(8);
+      const data = await fetchFromBackend("/alerts");
       return data || [];
     },
     refetchInterval: 15000,

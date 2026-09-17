@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchFromBackend } from "@/lib/api";
 
 const diseaseColors: Record<string, string> = {
   "Late Blight": "#5fa848",
@@ -16,12 +16,8 @@ export default function OutbreakList() {
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["outbreak-zones"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("disease_reports")
-        .select("district, mandal, disease, cases, trend, crop")
-        .order("cases", { ascending: false })
-        .limit(10);
-      return (data || []).map(d => ({ ...d, mandal: d.mandal || "", trend: d.trend, crop: d.crop || "Unknown Crop" }));
+      const data = await fetchFromBackend("/disease-reports");
+      return (data || []).map((d: any) => ({ ...d, mandal: d.mandal || "", trend: d.trend, crop: d.crop || "Unknown Crop" }));
     },
     refetchInterval: 30000,
   });

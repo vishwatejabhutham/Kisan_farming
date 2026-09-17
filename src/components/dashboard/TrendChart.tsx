@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchFromBackend } from "@/lib/api";
 
 const C_GREEN = "#5fa848";
 const C_BLUE = "#3a7ca5";
@@ -31,17 +31,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function TrendChart() {
-  const { data: snapshots = [] } = useQuery({
+  const { data: rawSnapshots = [] } = useQuery({
     queryKey: ["trend-snapshots"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("analytics_snapshots")
-        .select("*")
-        .order("date", { ascending: true });
-      return data || [];
+      const data = await fetchFromBackend("/analytics-snapshots");
+      return (data || []).map((s: any) => ({ ...s, date: s.snapshot_date }));
     },
     refetchInterval: 30000,
   });
+
+  const snapshots = rawSnapshots;
 
   const allDates = [...new Set(snapshots.map(s => s.date))].sort();
   const today = new Date().toISOString().split("T")[0];

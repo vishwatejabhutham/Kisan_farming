@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchFromBackend } from "@/lib/api";
 
 const urgencyColors: Record<string, { bg: string; text: string }> = {
   CRITICAL: { bg: "bg-destructive/10", text: "text-destructive" },
@@ -9,17 +9,28 @@ const urgencyColors: Record<string, { bg: string; text: string }> = {
   LOW: { bg: "bg-muted", text: "text-muted-foreground" },
 };
 
+type InventoryItem = {
+  id: string;
+  product: string;
+  district: string;
+  urgency: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  stock_units: number;
+  estimated_demand: number;
+  confidence: number;
+  mandal?: string;
+};
+
 export default function InventoryRow() {
-  const { data: recs = [] } = useQuery({
-    queryKey: ["inventory-recs"],
+  const { data: inventory = [], isLoading } = useQuery<InventoryItem[]>({
+    queryKey: ["inventory-status"],
     queryFn: async () => {
-      const { data } = await supabase.from("inventory").select("*").order("urgency").limit(6);
+      const data = await fetchFromBackend("/inventory");
       return data || [];
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
-  const items = recs;
+  const items = inventory;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card p-6">

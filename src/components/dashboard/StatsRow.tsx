@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { TrendingUp, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchFromBackend } from "@/lib/api";
 
 function useCounter(target: number, duration = 1500) {
   const [count, setCount] = useState(0);
@@ -58,7 +59,7 @@ export default function StatsRow() {
   const { data: reports = [] } = useQuery({
     queryKey: ["stats-reports"],
     queryFn: async () => {
-      const { data } = await supabase.from("disease_reports").select("district, cases, trend");
+      const data = await fetchFromBackend("/disease-reports");
       return data || [];
     },
     refetchInterval: 30000,
@@ -67,10 +68,10 @@ export default function StatsRow() {
   const { data: alertCount = 0 } = useQuery({
     queryKey: ["stats-alerts"],
     queryFn: async () => {
-      const { count } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("is_read", false);
+      const count = await fetchFromBackend("/alerts/unread-count");
       return count || 0;
     },
-    refetchInterval: 15000,
+    refetchInterval: 30000,
   });
 
   const totalCases = reports.reduce((s, r) => s + r.cases, 0);

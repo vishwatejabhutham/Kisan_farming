@@ -2,22 +2,22 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchFromBackend } from "@/lib/api";
 
-const COLORS = ["#5fa848", "#3a7ca5", "#ea7c1e", "#dc2626", "#7c5cd6"];
+const COLORS = ["#1c2c1f", "#5fa848", "#ea7c1e", "#dc2626", "#a0aec0", "#e2e8f0"];
 const crops = ["All", "Tomato", "Chilli", "Cotton", "Rice", "Groundnut"] as const;
 type Crop = (typeof crops)[number];
 
 export default function DiseaseDonut() {
-  const [activeCrop, setActiveCrop] = useState<Crop>("All");
+  const [activeCrop, setActiveCrop] = useState<string>("All");
 
   const { data: reports = [] } = useQuery({
-    queryKey: ["donut-reports"],
+    queryKey: ["disease-donut"],
     queryFn: async () => {
-      const { data } = await supabase.from("disease_reports").select("disease, cases, crop");
+      const data = await fetchFromBackend("/disease-reports");
       return data || [];
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
   const filtered = activeCrop === "All" ? reports : reports.filter(r => r.crop === activeCrop);

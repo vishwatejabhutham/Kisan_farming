@@ -1,21 +1,18 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Users, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import Navbar from "@/components/dashboard/Navbar";
-import StatsRow from "@/components/dashboard/StatsRow";
-import MapPanel from "@/components/dashboard/MapPanel";
-import TrendChart from "@/components/dashboard/TrendChart";
-import OutbreakList from "@/components/dashboard/OutbreakList";
-import DiseaseDonut from "@/components/dashboard/DiseaseDonut";
-import AlertFeed from "@/components/dashboard/AlertFeed";
-import InventoryRow from "@/components/dashboard/InventoryRow";
-import heroWheat from "@/assets/hero-wheat.jpg";
+
+import DiseaseImageScroller from "@/components/dashboard/DiseaseImageScroller";
 import farmer from "@/assets/farmer-field.jpg";
 import logo from "@/assets/kisan-logo.png";
 import agribusinessImg from "@/assets/agribusiness.jpg";
 import governmentImg from "@/assets/government.jpg";
 import farmerImg from "@/assets/farmer.jpg";
 import dataInsightsImg from "@/assets/data-insights.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
 const stagger = {
   hidden: {},
@@ -28,6 +25,18 @@ const fadeUp = {
 
 export default function Index() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (user) {
+      navigate(searchQuery ? `/analytics?search=${encodeURIComponent(searchQuery)}` : "/analytics");
+    } else {
+      toast.info("Please sign in to view Mandal Analytics");
+      navigate(searchQuery ? `/auth?redirect=/analytics&search=${encodeURIComponent(searchQuery)}` : "/auth?redirect=/analytics");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,11 +45,12 @@ export default function Index() {
       {/* HERO */}
       <section className="px-4 lg:px-8 mt-4">
         <div className="relative rounded-[2rem] overflow-hidden shadow-xl">
-          <img
-            src={heroWheat}
-            alt="Wheat field at golden hour"
-            width={1920}
-            height={1280}
+          <video
+            src="/hero-wheat.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
             className="w-full h-[78vh] min-h-[560px] object-cover"
           />
           {/* Subtle gradient for legibility */}
@@ -63,12 +73,18 @@ export default function Index() {
                 Real-time crop disease intelligence built on satellite scans, field
                 reports, and predictive AI — protecting harvests across Telangana.
               </motion.p>
-              <motion.div variants={fadeUp} className="mt-8 bg-white p-2 rounded-[1.25rem] flex items-center w-full max-w-md shadow-2xl">
-                <input type="text" placeholder="Enter Mandal or District" className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-4 text-foreground placeholder:text-muted-foreground font-medium" />
-                <button onClick={() => navigate("/analytics")} className="bg-accent text-accent-foreground px-8 py-3.5 rounded-xl font-semibold hover:bg-accent/90 transition-colors shadow-sm">
+              <form onSubmit={handleSearch} className="mt-8 bg-white p-2 rounded-[1.25rem] flex items-center w-full max-w-md shadow-2xl">
+                <input
+                  type="text"
+                  placeholder="Enter Mandal or District"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-4 text-foreground placeholder:text-muted-foreground font-medium"
+                />
+                <button type="submit" className="bg-accent text-accent-foreground px-8 py-3.5 rounded-xl font-semibold hover:bg-accent/90 transition-colors shadow-sm">
                   Search
                 </button>
-              </motion.div>
+              </form>
             </motion.div>
 
             {/* bottom hero strip */}
@@ -114,48 +130,8 @@ export default function Index() {
         </div>
       </section>
 
-      {/* DASHBOARD */}
-      <motion.main
-        className="max-w-[1320px] mx-auto px-4 lg:px-8 py-16 space-y-10"
-        variants={stagger}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
-      >
-        <motion.div variants={fadeUp} className="flex items-end justify-between gap-6">
-          <div>
-            <span className="eyebrow">Live Intelligence</span>
-            <h2 className="text-3xl md:text-5xl font-heading font-medium leading-tight mt-3 text-foreground">
-              Smart Farming Made
-              <br />
-              <span className="italic-display">Simple and Efficient</span>
-            </h2>
-          </div>
-          <p className="hidden md:block text-sm text-muted-foreground max-w-sm leading-relaxed">
-            A connected platform linking soil, crops, and operations — helping farmers grow more efficiently and safely.
-          </p>
-        </motion.div>
-
-        <motion.div variants={fadeUp}>
-          <StatsRow />
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3 space-y-6">
-            <motion.div variants={fadeUp}><MapPanel /></motion.div>
-            <motion.div variants={fadeUp}><TrendChart /></motion.div>
-          </div>
-          <div className="lg:col-span-2 space-y-6">
-            <motion.div variants={fadeUp}><OutbreakList /></motion.div>
-            <motion.div variants={fadeUp}><DiseaseDonut /></motion.div>
-            <motion.div variants={fadeUp}><AlertFeed /></motion.div>
-          </div>
-        </div>
-
-        <motion.div variants={fadeUp}>
-          <InventoryRow />
-        </motion.div>
-      </motion.main>
+      {/* PLANT DISEASE IMAGE GALLERY SCROLLER */}
+      <DiseaseImageScroller />
 
       {/* CLOSING IMAGE BAND */}
       <section className="max-w-[1320px] mx-auto px-4 lg:px-8 pb-20">

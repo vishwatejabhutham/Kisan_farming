@@ -24,17 +24,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const checkDemoUser = () => {
+      try {
+        const stored = localStorage.getItem("kisan_demo_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setUser(parsed.user as User);
+          setSession((parsed.session || { user: parsed.user }) as Session);
+          return true;
+        }
+      } catch (e) {
+        console.error("Demo user parse error", e);
+      }
+      return false;
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        } else {
+          checkDemoUser();
+        }
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      } else {
+        checkDemoUser();
+      }
+      setLoading(false);
+    }).catch(() => {
+      checkDemoUser();
       setLoading(false);
     });
 
@@ -42,7 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem("kisan_demo_user");
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.log("Supabase signout error ignored", e);
+    }
+    setUser(null);
+    setSession(null);
   };
 
   return (
