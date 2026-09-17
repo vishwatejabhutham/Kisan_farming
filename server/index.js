@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import snowflake from "snowflake-sdk";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -89,6 +90,41 @@ app.get("/api/disease-reports", async (req, res) => {
     res.json({ success: true, data: lowerCaseKeys(rows) });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Create/Record a new disease scan report
+app.post("/api/disease-reports", async (req, res) => {
+  try {
+    const { district, mandal, crop, disease, cases = 1, severity = 'medium', trend = 'rising', trend_pct = 5.0, latitude = 17.9689, longitude = 79.5941, reported_by = 'telegram_bot', notes = '' } = req.body;
+    
+    if (!district || !crop || !disease) {
+      return res.status(400).json({ success: false, error: "Missing required fields: district, crop, disease" });
+    }
+
+    const insertSql = `
+      INSERT INTO disease_reports (id, district, mandal, crop, disease, cases, severity, trend, trend_pct, latitude, longitude, reported_by, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    await executeQuery(insertSql, [
+      crypto.randomUUID(),
+      String(district),
+      String(mandal || district),
+      String(crop),
+      String(disease),
+      Number(cases),
+      String(severity),
+      String(trend),
+      Number(trend_pct),
+      Number(latitude),
+      Number(longitude),
+      String(reported_by).substring(0, 36),
+      String(notes).substring(0, 2000)
+    ]);
+    res.json({ success: true, message: "Disease report successfully logged to database." });
+  } catch (err) {
+    console.error("Failed to insert disease report:", err);
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
