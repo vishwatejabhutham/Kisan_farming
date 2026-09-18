@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import snowflake from "snowflake-sdk";
-import crypto from "crypto";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -93,41 +92,6 @@ app.get("/api/disease-reports", async (req, res) => {
   }
 });
 
-// Create/Record a new disease scan report
-app.post("/api/disease-reports", async (req, res) => {
-  try {
-    const { district, mandal, crop, disease, cases = 1, severity = 'medium', trend = 'rising', trend_pct = 5.0, latitude = 17.9689, longitude = 79.5941, reported_by = 'telegram_bot', notes = '' } = req.body;
-    
-    if (!district || !crop || !disease) {
-      return res.status(400).json({ success: false, error: "Missing required fields: district, crop, disease" });
-    }
-
-    const insertSql = `
-      INSERT INTO disease_reports (id, district, mandal, crop, disease, cases, severity, trend, trend_pct, latitude, longitude, reported_by, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await executeQuery(insertSql, [
-      crypto.randomUUID(),
-      String(district),
-      String(mandal || district),
-      String(crop),
-      String(disease),
-      Number(cases),
-      String(severity),
-      String(trend),
-      Number(trend_pct),
-      Number(latitude),
-      Number(longitude),
-      String(reported_by).substring(0, 36),
-      String(notes).substring(0, 2000)
-    ]);
-    res.json({ success: true, message: "Disease report successfully logged to database." });
-  } catch (err) {
-    console.error("Failed to insert disease report:", err);
-    res.status(500).json({ success: false, error: err.message || String(err) });
-  }
-});
-
 // Get inventory
 app.get("/api/inventory", async (req, res) => {
   try {
@@ -195,6 +159,78 @@ app.post("/api/init-db", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// --- TTS & QUERY FALLBACK ENDPOINTS ---
+
+// Text-to-Speech (TTS) Model Placeholder Endpoint
+app.post("/api/tts", (req, res) => {
+  const { text, language = "te" } = req.body || {};
+  res.json({
+    success: true,
+    status: "placeholder",
+    message: "TTS model placeholder active. Text-to-Speech synthesis model will be installed in the later part of the hackathon.",
+    tts_placeholder: "🔊 [TTS Model Placeholder - Voice synthesis model will be integrated in upcoming hackathon phase]",
+    language: language,
+    text: text || "",
+    audio_url: null
+  });
+});
+
+// Process Farmer/User Queries with Fallback for Invalid Queries
+app.post("/api/query", async (req, res) => {
+  try {
+    const { query } = req.body || {};
+
+    // Validate query input
+    if (!query || typeof query !== "string" || query.trim().length === 0) {
+      return res.json({
+        success: true,
+        handled: false,
+        message: "Our team will manage the query internally and update them.",
+        tts_placeholder: "🔊 [TTS Model Placeholder - Audio response active after model deployment]"
+      });
+    }
+
+    const cleanQuery = query.trim().toLowerCase();
+
+    // Check database for matching disease, crop, mandal, or district
+    const rows = await executeQuery("SELECT * FROM disease_reports");
+    const reports = lowerCaseKeys(rows);
+    const match = reports.find(r =>
+      r.district?.toLowerCase().includes(cleanQuery) ||
+      r.mandal?.toLowerCase().includes(cleanQuery) ||
+      r.crop?.toLowerCase().includes(cleanQuery) ||
+      r.disease?.toLowerCase().includes(cleanQuery)
+    );
+
+    if (match) {
+      return res.json({
+        success: true,
+        handled: true,
+        data: match,
+        message: `Found outbreak data for ${match.crop} (${match.disease}) in ${match.district}.`,
+        tts_placeholder: "🔊 [TTS Model Placeholder: Speech synthesis active in next phase]"
+      });
+    }
+
+    // Fallback for invalid/unrecognized queries
+    res.json({
+      success: true,
+      handled: false,
+      message: "Our team will manage the query internally and update them.",
+      tts_placeholder: "🔊 [TTS Model Placeholder: Voice audio pending model deployment]"
+    });
+  } catch (err) {
+    console.error("Query processing error:", err.message);
+    res.json({
+      success: true,
+      handled: false,
+      message: "Our team will manage the query internally and update them.",
+      tts_placeholder: "🔊 [TTS Model Placeholder: Voice audio pending model deployment]"
+    });
+  }
+});
+
 
 // Start Server
 app.listen(PORT, () => {

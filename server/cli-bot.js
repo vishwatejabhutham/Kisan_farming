@@ -105,13 +105,14 @@ Menu Buttons:
 ---
 💊 Recommended Treatment: Copper Oxychloride 50% WP @ 3g/L
 💰 Estimated Cost: ₹450
+🔊 Audio (TTS): [TTS Model Placeholder: Speech model will be installed in the later part of the hackathon.]
 ✅ Data Logged: ${res.data.message}`);
       } catch (err) {
         console.log("⚠️ Make sure backend is running (npm run server).");
       }
     } 
     else {
-      // District search query
+      // Search district / mandal or handle invalid queries
       try {
         const res = await axios.get(`${API_BASE_URL}/disease-reports`);
         const reports = res.data.data || [];
@@ -130,12 +131,13 @@ Menu Buttons:
 🦠 Disease: ${match.disease}
 📊 Total Cases: ${match.cases} ${trendIcon}
 ⚠️ Severity: ${match.severity.toUpperCase()}
-📈 7-Day Trend: ${match.trend} (${match.trend_pct}%)`);
+📈 7-Day Trend: ${match.trend} (${match.trend_pct}%)
+🔊 Audio (TTS): [TTS Model Placeholder: Voice synthesis model pending deployment]`);
         } else {
-          console.log(`🤖 Received message: "${text}"\nTry typing /start, 1, 2, 3, or a district name like "Warangal".`);
+          console.log(`🤖 Query: "${text}"\nℹ️ Status: Our team will manage the query internally and update them.\n🔊 Audio (TTS): [TTS Model Placeholder Active]`);
         }
       } catch (e) {
-        console.log(`🤖 Received message: "${text}"\nTry typing /start, 1, 2, 3, or a district name like "Warangal".`);
+        console.log(`🤖 Query: "${text}"\nℹ️ Status: Our team will manage the query internally and update them.\n🔊 Audio (TTS): [TTS Model Placeholder Active]`);
       }
     }
 

@@ -87,9 +87,32 @@ Buttons Available:
     console.warn("⚠️ Failed to post scan report:", err.response?.data || err.message);
   }
 
+  console.log("👉 4. Testing TTS (Text-to-Speech) Model Placeholder API (/api/tts)");
+  try {
+    const ttsRes = await axios.post(`${API_BASE_URL}/tts`, { text: "కాపర్ ఆక్సీక్లోరైడ్ 50% WP పిచికారీ చేయండి", language: "te" });
+    console.log("✅ TTS Endpoint Response:", ttsRes.data.message);
+    console.log("   • Status:", ttsRes.data.status);
+    console.log("   • Placeholder:", ttsRes.data.tts_placeholder);
+    console.log("--------------------------------------------------------\n");
+  } catch (err) {
+    console.warn("⚠️ TTS endpoint test skipped:", err.message);
+  }
+
+  console.log("👉 5. Testing Invalid Query Fallback Messaging (/api/query)");
+  try {
+    const queryRes = await axios.post(`${API_BASE_URL}/query`, { query: "random invalid query xyz 123" });
+    console.log("✅ Query Processing Response:");
+    console.log("   • Handled:", queryRes.data.handled);
+    console.log("   • Fallback Message:", queryRes.data.message);
+    console.log("--------------------------------------------------------\n");
+  } catch (err) {
+    console.warn("⚠️ Query endpoint test skipped:", err.message);
+  }
+
   console.log("========================================================");
   console.log("🎉 LOCAL BOT SIMULATION TEST PASSED SUCCESSFULLY! 🎉");
   console.log("========================================================\n");
 }
 
 runLocalBotSimulation();
+

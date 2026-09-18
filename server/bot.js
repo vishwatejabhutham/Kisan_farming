@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8828201134:AAFHEe8CqGV1C5R8gYZPEkSEjxQD0NWX7tY";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 const API_BASE_URL = process.env.BACKEND_API_URL || "http://localhost:3001/api";
 
@@ -25,6 +25,8 @@ if (GEMINI_API_KEY) {
 if (!TELEGRAM_TOKEN) {
   console.error("❌ TELEGRAM_BOT_TOKEN is missing in .env!");
   console.log("👉 Please set TELEGRAM_BOT_TOKEN in your .env file to enable live Telegram integration.");
+} else {
+  console.log("🤖 Telegram Bot initialized with token:", TELEGRAM_TOKEN.substring(0, 10) + "...");
 }
 
 const bot = TELEGRAM_TOKEN ? new Telegraf(TELEGRAM_TOKEN) : null;
@@ -209,12 +211,14 @@ ${diagnosis.advice_hindi}
 
 💰 *Estimated Cost / అంచనా వ్యయం:* ₹${diagnosis.cost_inr}
 
+🔊 *Audio Advice (TTS):* 🎧 [TTS Model Placeholder: Speech synthesis model will be installed in the later part of the hackathon.]
+
 📊 *Data Logged:* This outbreak scan has been automatically updated on your Mandal Disease Heatmap.`;
 
       await ctx.replyWithMarkdown(replyMessage, mainKeyboard);
     } catch (err) {
       console.error("Error processing photo:", err);
-      ctx.reply("❌ Unable to analyze image right now. Please ensure the leaf photo is clear and try again.");
+      ctx.reply("❌ Unable to analyze image right now. Please ensure the leaf photo is clear and try again.\n\nOur team will manage the query internally and update them.");
     }
   });
 
@@ -236,10 +240,11 @@ ${diagnosis.advice_hindi}
           reportText += `   • Risk Level: ${r.severity.toUpperCase()}\n\n`;
         });
 
+        reportText += "🔊 *Audio Advice (TTS):* 🎧 [TTS Model Placeholder: Audio synthesis model will be integrated in upcoming hackathon phase]\n\n";
         reportText += "🔍 *Type a Mandal or District name (e.g. Warangal) for detailed data.*";
         return ctx.replyWithMarkdown(reportText, mainKeyboard);
       } catch (err) {
-        return ctx.reply("📊 Mandal Outbreak Data:\n• Warangal: 312 Late Blight cases (Rising)\n• Karimnagar: 245 Leaf Curl cases (Rising)\n• Khammam: 189 Whitefly cases (Falling)");
+        return ctx.reply("📊 Mandal Outbreak Data:\n• Warangal: 312 Late Blight cases (Rising)\n• Karimnagar: 245 Leaf Curl cases (Rising)\n• Khammam: 189 Whitefly cases (Falling)\n\n🔊 [TTS Model Placeholder Active]");
       }
     }
 
@@ -250,6 +255,7 @@ ${diagnosis.advice_hindi}
         "2. *Chilli Leaf Curl*: Imidacloprid 17.8 SL @ 0.5ml/L\n" +
         "3. *Cotton Whitefly*: Diafenthiuron 50% WP @ 1.25g/L\n" +
         "4. *Rice Stem Rot*: Hexaconazole 5% EC @ 2ml/L\n\n" +
+        "🔊 *Audio Advice (TTS):* 🎧 [TTS Model Placeholder: Audio speech model will be integrated in the upcoming hackathon phase]\n\n" +
         "📸 *Send a photo of your leaf for instant customized advice!*",
         mainKeyboard
       );
@@ -258,7 +264,8 @@ ${diagnosis.advice_hindi}
     if (text.includes("Help") || text.includes("సహాయం")) {
       return ctx.reply(
         "🌾 Kisan Farming Support\n\n" +
-        "For immediate agronomist assistance, send a photo of your crop or contact your local Mandal Agricultural Officer (MAO).",
+        "For immediate agronomist assistance, send a photo of your crop or contact your local Mandal Agricultural Officer (MAO).\n\n" +
+        "🔊 TTS Voice Assistant: [TTS Model Placeholder Active]",
         mainKeyboard
       );
     }
@@ -282,6 +289,7 @@ ${diagnosis.advice_hindi}
           `📊 *Total Cases:* ${match.cases} ${trendIcon}\n` +
           `⚠️ *Severity:* ${match.severity.toUpperCase()}\n` +
           `📈 *7-Day Trend:* ${match.trend} (${match.trend_pct}%)\n\n` +
+          `🔊 *Audio Response (TTS):* 🎧 [TTS Model Placeholder: Voice synthesis model will be installed in the later part of the hackathon]\n\n` +
           `📸 Send a photo of affected plants in ${match.district} for instant treatment details!`;
         return ctx.replyWithMarkdown(replyMsg, mainKeyboard);
       }
@@ -289,9 +297,11 @@ ${diagnosis.advice_hindi}
       // ignore search error
     }
 
-    // Default friendly response
+    // Fallback response for unrecognized / invalid queries
     ctx.replyWithMarkdown(
-      `🤖 I received your message: "${text}".\n\n` +
+      `⚠️ *Query Received:* "${text}"\n\n` +
+      `ℹ️ *Status:* Our team will manage the query internally and update them.\n\n` +
+      `🔊 *Audio Advice (TTS):* 🎧 [TTS Model Placeholder: Speech synthesis model pending deployment in later hackathon phase.]\n\n` +
       `📸 **To diagnose crop diseases**: Upload/send a photo of the affected plant leaf!\n` +
       `📊 **For Mandal Analytics**: Type a district name like \`Warangal\` or \`Karimnagar\`.`,
       mainKeyboard
