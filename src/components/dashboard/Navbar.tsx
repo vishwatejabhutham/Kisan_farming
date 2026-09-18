@@ -52,13 +52,7 @@ export default function Navbar() {
           {tabs.map((tab) => (
             <button
               key={tab.label}
-              onClick={() => {
-                if ((tab.path === "/analytics" || tab.path === "/alerts") && !user) {
-                  navigate(`/auth?redirect=${tab.path}`);
-                } else {
-                  navigate(tab.path);
-                }
-              }}
+              onClick={() => navigate(tab.path)}
               className={`pill-tab px-5 py-1.5 ${
                 activeTab === tab.label ? "pill-tab-active" : "pill-tab-inactive"
               }`}

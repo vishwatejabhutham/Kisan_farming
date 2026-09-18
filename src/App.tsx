@@ -16,8 +16,6 @@ import AdminOverview from "./pages/admin/Overview";
 import AdminUsers from "./pages/admin/Users";
 import AdminRoles from "./pages/admin/Roles";
 
-import TTSQueryWidget from "./components/dashboard/TTSQueryWidget";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -41,7 +39,6 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <TTSQueryWidget />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8828201134:AAFHEe8CqGV1C5R8gYZPEkSEjxQD0NWX7tY";
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "AIzaSyBifZefxrZGIXbXjBkBXI7wgd-mVaqayQE";
 const API_BASE_URL = process.env.BACKEND_API_URL || "http://localhost:3001/api";
 
 // Initialize Gemini Client if key available
@@ -139,6 +139,32 @@ async function saveReportToDatabase(diagnosisData, district = "Warangal", mandal
   }
 }
 
+// Helper: Synthesize & send playable Voice Note audio on Telegram
+async function generateAndSendVoiceMessage(ctx, text, lang = "te") {
+  try {
+    const cleanText = (text || "").replace(/[*_`#]/g, '').trim().substring(0, 350);
+    if (!cleanText) return;
+
+    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=${lang}&client=tw-ob`;
+    
+    const response = await axios.get(ttsUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+
+    const audioBuffer = Buffer.from(response.data);
+    await ctx.replyWithVoice(
+      { source: audioBuffer, filename: 'kisan_advice.ogg' },
+      { caption: "🔊 *Voice Advice / శ్రవణ నివేదిక*", parse_mode: "Markdown" }
+    );
+    console.log("🔊 Sent live Telegram voice note successfully.");
+  } catch (err) {
+    console.warn("⚠️ Voice message synthesis error:", err.message);
+  }
+}
+
 // Handler setup if Bot is initialized
 if (bot) {
   // /start handler
@@ -153,7 +179,7 @@ I am your AI Agronomist & Crop Disease Assistant.
 1. Simply send or upload a **photo of a sick leaf/crop**.
    పంట వ్యాధి సోకిన ఆకు లేదా మొక్క ఫోటో పంపండి.
 2. I will diagnose the disease in **Telugu, Hindi, and English** with exact treatment & cost!
-   వ్యాధి పేరు, పురుగు మందు పిచికారీ వివరాలు వెంటనే అందుతాయి.
+   వ్యాధి పేరు, పురుగు మందు పిచికారీ వివరాలు మరియు శ్రవణ సలహా (Voice Note) అందుతాయి.
 
 📊 Tap below to view **Mandal Analytics** or **Treatment Advice**.`;
 
@@ -164,7 +190,7 @@ I am your AI Agronomist & Crop Disease Assistant.
   bot.help((ctx) => {
     ctx.reply(
       "🌾 *Kisan Farming Commands*\n\n" +
-      "• Send any crop leaf photo 📸 for instant disease diagnosis.\n" +
+      "• Send any crop leaf photo 📸 for instant disease diagnosis & Voice Note.\n" +
       "• Type any district/mandal name (e.g. `Warangal`, `Karimnagar`) to view outbreak analytics.\n" +
       "• Type disease name (e.g. `Late Blight`) to view treatments.",
       mainKeyboard
@@ -174,13 +200,13 @@ I am your AI Agronomist & Crop Disease Assistant.
   // Handle Photo Upload
   bot.on("photo", async (ctx) => {
     try {
-      await ctx.reply("🔍 *Analyzing your leaf image with AI Vision...*\n*ఆకు ఫోటోను విశ్లేషిస్తున్నాము, దయచేసి వేచి ఉండండి...*", { parse_mode: "Markdown" });
+      await ctx.reply("🔍 *Analyzing your leaf image with Gemini AI Vision...*\n*Gemini AI ద్వార ఆకు ఫోటోను విశ్లేషిస్తున్నాము, దయచేసి వేచి ఉండండి...*", { parse_mode: "Markdown" });
       
       const photos = ctx.message.photo;
       const highestResPhoto = photos[photos.length - 1];
       const fileUrl = await ctx.telegram.getFileLink(highestResPhoto.file_id);
 
-      // Perform AI Analysis
+      // Perform Gemini AI Image Analysis
       const diagnosis = await analyzeCropImage(fileUrl.href);
 
       // Log to Snowflake DB
@@ -188,13 +214,14 @@ I am your AI Agronomist & Crop Disease Assistant.
 
       // Format Multi-Lingual Reply
       const severityEmoji = diagnosis.severity === "high" ? "🚨 HIGH" : diagnosis.severity === "medium" ? "⚠️ MEDIUM" : "🟢 LOW";
+      const ttsAudioText = diagnosis.advice_telugu || `${diagnosis.crop} ${diagnosis.disease}. ${diagnosis.treatment}`;
       
       const replyMessage = 
 `🔬 *DISEASE DIAGNOSIS REPORT / పంట వ్యాధి నివేదిక*
 
 🌱 *Crop / పంట:* ${diagnosis.crop}
 🦠 *Disease / తెగులు:* ${diagnosis.disease}
-⚠️ *Severity / తీవ్రత:* ${severityEmoji}
+⚠️ *Severity / தீவிரత:* ${severityEmoji}
 🎯 *AI Confidence:* ${(diagnosis.confidence * 100).toFixed(0)}%
 
 ---
@@ -211,11 +238,16 @@ ${diagnosis.advice_hindi}
 
 💰 *Estimated Cost / అంచనా వ్యయం:* ₹${diagnosis.cost_inr}
 
-🔊 *Audio Advice (TTS):* 🎧 [TTS Model Placeholder: Speech synthesis model will be installed in the later part of the hackathon.]
+🔊 *Voice Note:* Live audio message is being generated below...
 
 📊 *Data Logged:* This outbreak scan has been automatically updated on your Mandal Disease Heatmap.`;
 
+      // 1. Send Markdown Diagnosis Report
       await ctx.replyWithMarkdown(replyMessage, mainKeyboard);
+
+      // 2. Synthesize & Send Live Telegram Voice Note to user!
+      await generateAndSendVoiceMessage(ctx, ttsAudioText, "te");
+
     } catch (err) {
       console.error("Error processing photo:", err);
       ctx.reply("❌ Unable to analyze image right now. Please ensure the leaf photo is clear and try again.\n\nOur team will manage the query internally and update them.");
